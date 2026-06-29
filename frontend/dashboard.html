@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClauzIA - Tableau de bord</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="dashboard-shell">
+    <header class="dashboard-header">
+      <div class="dashboard-title">
+        <div>
+          <span class="hero-note">Votre espace de style intelligent</span>
+          <h1>ClauzIA</h1>
+          <p class="muted">Organise, recommande et génère des looks à partir de tes vêtements.</p>
+        </div>
+        <button type="button" id="logoutBtn" class="secondary">Se déconnecter</button>
+      </div>
+
+      <nav class="dashboard-nav" aria-label="Navigation du tableau de bord">
+        <button type="button" class="dashboard-tab active" data-target="panel-profile">Profil</button>
+        <button type="button" class="dashboard-tab" data-target="panel-recommendation">Recommandation</button>
+        <button type="button" class="dashboard-tab" data-target="panel-add-garment">Ajouter un vêtement</button>
+        <button type="button" class="dashboard-tab" data-target="panel-my-garments">Mes vêtements</button>
+      </nav>
+    </header>
+
+    <main class="dashboard-panels">
+      <section id="panel-profile" class="dashboard-panel active">
+        <div class="profile-box">
+          <img id="profileImage" class="avatar" src="https://via.placeholder.com/140?text=Photo" alt="Photo de profil" />
+
+          <div class="info">
+            <p><strong>Nom :</strong> <span id="userName">-</span></p>
+            <p><strong>Email :</strong> <span id="userEmail">-</span></p>
+            <p><strong>Photo :</strong> <span id="photoStatus">Aucune photo</span></p>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h2>Mettre à jour la photo de profil</h2>
+          <form id="photoForm">
+            <label for="profilePhoto">Choisir une image</label>
+            <input type="file" id="profilePhoto" accept="image/*" />
+
+            <div class="row" style="margin-top:10px;">
+              <button type="button" id="openProfileCameraBtn" class="secondary">Prendre une photo</button>
+              <button type="button" id="clearProfilePhotoBtn" class="secondary">Effacer</button>
+            </div>
+
+            <input type="file" id="profilePhotoCamera" accept="image/*" capture="environment" style="display:none;" />
+
+            <img id="profilePhotoPreview" src="" alt="Aperçu photo profil" class="preview-image" />
+
+            <button type="submit" style="margin-top: 16px;">Envoyer la photo</button>
+            <div id="photoMessage" class="message"></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="panel-recommendation" class="dashboard-panel">
+        <div class="section-card">
+          <h2>Obtenir une recommandation</h2>
+          <form id="recommendationForm">
+            <label>Humeur</label>
+            <div class="chip-group" id="moodGroup">
+              <button type="button" class="chip" data-value="audacieux">Audacieux</button>
+              <button type="button" class="chip" data-value="calme">Calme</button>
+              <button type="button" class="chip" data-value="élégant">Élégant</button>
+              <button type="button" class="chip" data-value="décontracté">Décontracté</button>
+              <button type="button" class="chip" data-value="minimaliste">Minimaliste</button>
+              <button type="button" class="chip" data-value="sportif">Sportif</button>
+              <button type="button" class="chip" data-value="chic">Chic</button>
+              <button type="button" class="chip" data-value="professionnel">Professionnel</button>
+            </div>
+            <input type="hidden" id="mood" />
+
+            <label>Occasion</label>
+            <div class="chip-group" id="occasionGroup">
+              <button type="button" class="chip" data-value="travail">Travail</button>
+              <button type="button" class="chip" data-value="sortie">Sortie</button>
+              <button type="button" class="chip" data-value="mariage">Mariage</button>
+              <button type="button" class="chip" data-value="cérémonie">Cérémonie</button>
+              <button type="button" class="chip" data-value="sport">Sport</button>
+              <button type="button" class="chip" data-value="rendez-vous">Rendez-vous</button>
+              <button type="button" class="chip" data-value="vacances">Vacances</button>
+              <button type="button" class="chip" data-value="école">École</button>
+            </div>
+            <input type="hidden" id="occasion" />
+
+            <label>Saison / météo</label>
+            <div class="chip-group" id="recommendationSeasonGroup">
+              <button type="button" class="chip" data-value="été">Été</button>
+              <button type="button" class="chip" data-value="hiver">Hiver</button>
+              <button type="button" class="chip" data-value="printemps">Printemps</button>
+              <button type="button" class="chip" data-value="automne">Automne</button>
+              <button type="button" class="chip" data-value="pluie">Pluie</button>
+              <button type="button" class="chip" data-value="chaud">Chaud</button>
+              <button type="button" class="chip" data-value="frais">Frais</button>
+            </div>
+            <input type="hidden" id="recommendationSeason" />
+
+            <button type="submit" style="margin-top: 18px;">Recommander une tenue</button>
+            <div id="recommendationMessage" class="message"></div>
+          </form>
+
+          <div id="recommendationResult"></div>
+        </div>
+
+        <div class="section-card">
+          <h2>Générer une photo</h2>
+          <button type="button" id="generateOutfitBtn">Générer à partir de ma photo et de ma recommandation</button>
+          <div id="generateOutfitMessage" class="message"></div>
+          <div id="generatedOutfitResult" style="margin-top: 20px;"></div>
+        </div>
+      </section>
+
+      <section id="panel-add-garment" class="dashboard-panel">
+        <div class="section-card">
+          <h2>Ajouter un vêtement</h2>
+          <form id="garmentForm">
+            <label for="garmentImage">Photo du vêtement</label>
+            <input type="file" id="garmentImage" accept="image/*" />
+
+            <div class="row" style="margin-top:10px;">
+              <button type="button" id="openGarmentCameraBtn" class="secondary">Prendre une photo</button>
+              <button type="button" id="clearGarmentPhotoBtn" class="secondary">Effacer</button>
+            </div>
+
+            <input type="file" id="garmentImageCamera" accept="image/*" capture="environment" style="display:none;" />
+
+            <p class="muted" style="margin-top:8px;font-size:13px;">
+              En mode modification, laisse ce champ vide pour conserver l’image actuelle.
+            </p>
+
+            <img id="garmentPreview" src="" alt="Aperçu du vêtement" class="preview-image" />
+
+            <input type="hidden" id="currentGarmentImageUrl" />
+            <input type="hidden" id="currentProcessedImageUrl" />
+            <input type="hidden" id="garmentId" />
+
+            <label>Placement</label>
+            <div class="chip-group" id="placementGroup">
+              <button type="button" class="chip" data-value="top">Haut</button>
+              <button type="button" class="chip" data-value="bottom">Bas</button>
+              <button type="button" class="chip" data-value="shoes">Chaussures</button>
+              <button type="button" class="chip" data-value="accessory">Accessoire</button>
+            </div>
+            <input type="hidden" id="placement" />
+
+            <label>Catégorie</label>
+            <div class="chip-group" id="categoryGroup">
+              <button type="button" class="chip" data-value="T-shirt">T-shirt</button>
+              <button type="button" class="chip" data-value="Chemise">Chemise</button>
+              <button type="button" class="chip" data-value="Pull">Pull</button>
+              <button type="button" class="chip" data-value="Sweat">Sweat</button>
+              <button type="button" class="chip" data-value="Veste">Veste</button>
+              <button type="button" class="chip" data-value="Manteau">Manteau</button>
+              <button type="button" class="chip" data-value="Jean">Jean</button>
+              <button type="button" class="chip" data-value="Pantalon">Pantalon</button>
+              <button type="button" class="chip" data-value="Jupe">Jupe</button>
+              <button type="button" class="chip" data-value="Robe">Robe</button>
+              <button type="button" class="chip" data-value="Chaussures">Chaussures</button>
+              <button type="button" class="chip" data-value="Accessoire">Accessoire</button>
+            </div>
+            <input type="hidden" id="category" />
+
+            <label>Saison</label>
+            <div class="chip-group" id="garmentSeasonGroup">
+              <button type="button" class="chip" data-value="Été">Été</button>
+              <button type="button" class="chip" data-value="Hiver">Hiver</button>
+              <button type="button" class="chip" data-value="Printemps">Printemps</button>
+              <button type="button" class="chip" data-value="Automne">Automne</button>
+              <button type="button" class="chip" data-value="Pluie">Pluie</button>
+              <button type="button" class="chip" data-value="Chaud">Chaud</button>
+              <button type="button" class="chip" data-value="Frais">Frais</button>
+            </div>
+            <input type="hidden" id="garmentSeason" />
+
+            <label>Tags humeur</label>
+            <div class="chip-group" id="moodTagsGroup">
+              <button type="button" class="chip" data-value="élégant">Élégant</button>
+              <button type="button" class="chip" data-value="décontracté">Décontracté</button>
+              <button type="button" class="chip" data-value="audacieux">Audacieux</button>
+              <button type="button" class="chip" data-value="minimaliste">Minimaliste</button>
+              <button type="button" class="chip" data-value="sportif">Sportif</button>
+              <button type="button" class="chip" data-value="chic">Chic</button>
+              <button type="button" class="chip" data-value="professionnel">Professionnel</button>
+            </div>
+            <input type="hidden" id="moodTags" />
+
+            <label>Tags occasion</label>
+            <div class="chip-group" id="occasionTagsGroup">
+              <button type="button" class="chip" data-value="travail">Travail</button>
+              <button type="button" class="chip" data-value="sortie">Sortie</button>
+              <button type="button" class="chip" data-value="mariage">Mariage</button>
+              <button type="button" class="chip" data-value="sport">Sport</button>
+              <button type="button" class="chip" data-value="cérémonie">Cérémonie</button>
+              <button type="button" class="chip" data-value="vacances">Vacances</button>
+              <button type="button" class="chip" data-value="rendez-vous">Rendez-vous</button>
+              <button type="button" class="chip" data-value="école">École</button>
+            </div>
+            <input type="hidden" id="occasionTags" />
+
+            <button type="submit" id="garmentSubmitBtn" style="margin-top: 18px;">Ajouter le vêtement</button>
+            <button type="button" id="cancelGarmentEditBtn" class="secondary" style="display:none; margin-top: 18px;">Annuler la modification</button>
+            <div id="garmentMessage" class="message"></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="panel-my-garments" class="dashboard-panel">
+        <div class="section-card">
+          <div class="spread">
+            <h2>Mes vêtements</h2>
+            <p class="muted">Modifier, marquer indisponible ou supprimer un vêtement.</p>
+          </div>
+
+          <div id="garmentsList" class="stack" style="margin-top: 18px;"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const tabs = Array.from(document.querySelectorAll(".dashboard-tab"));
+      const panels = Array.from(document.querySelectorAll(".dashboard-panel"));
+
+      function activatePanel(targetId) {
+        tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.target === targetId));
+        panels.forEach((panel) => panel.classList.toggle("active", panel.id === targetId));
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => activatePanel(tab.dataset.target));
+      });
+
+      const defaultTab = document.querySelector(".dashboard-tab.active");
+      if (defaultTab) {
+        activatePanel(defaultTab.dataset.target);
+      }
+    });
+  </script>
+</body>
+</html>

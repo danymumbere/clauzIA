@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClauzIA - Inscription</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #f6f0ea, #fdfdfd);
+      color: #222;
+    }
+    .container {
+      width: min(420px, 92vw);
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+    h1 { margin-top: 0; }
+    label {
+      display: block;
+      margin: 14px 0 6px;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      margin-top: 18px;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: #111;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .link {
+      display: block;
+      margin-top: 14px;
+      text-align: center;
+      color: #333;
+      text-decoration: none;
+    }
+    .message {
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    .error { color: #b00020; }
+    .success { color: #006400; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Créer un compte</h1>
+
+    <form id="registerForm">
+      <label for="name">Nom</label>
+      <input type="text" id="name" name="name" required />
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required />
+
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" name="password" required minlength="6" />
+
+      <button type="submit">S’inscrire</button>
+      <div id="registerMessage" class="message"></div>
+    </form>
+
+    <a class="link" href="login.html">Déjà un compte ? Se connecter</a>
+    <a class="link" href="index.html">Retour à l’accueil</a>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

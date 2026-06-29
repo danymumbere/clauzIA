@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClauzIA</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <span class="hero-note">Stylisme intelligent · Dressing IA · Recommandations personnalisées</span>
+    <h1>ClauzIA</h1>
+    <p>Ton styliste virtuel intelligent, pensé pour recommander et générer des tenues selon l’humeur, l’occasion et la météo.</p>
+
+    <div class="hero-grid">
+      <div class="hero-card">
+        <h2>Construis ton dressing numérique</h2>
+        <p class="muted">Ajoute tes vêtements, organise-les par catégories et laisse l’IA composer des looks cohérents et visuels.</p>
+
+        <div class="actions">
+          <a class="button primary" href="register.html">Créer un compte</a>
+          <a class="button secondary" href="login.html">Se connecter</a>
+          <button id="logoutBtn" class="secondary" type="button">Se déconnecter</button>
+        </div>
+      </div>
+
+      <div class="hero-mini">
+        <h3>En bref</h3>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <strong>Photo de profil</strong>
+            <div class="muted">Uploader ou prendre une photo directement</div>
+          </div>
+          <div class="hero-stat">
+            <strong>Recommandations</strong>
+            <div class="muted">Par humeur, saison et occasion</div>
+          </div>
+          <div class="hero-stat">
+            <strong>Tenue générée</strong>
+            <div class="muted">À partir de ta photo et de tes vêtements</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:24px; padding:18px; border:1px solid var(--border); border-radius:14px; background: rgba(255,255,255,0.72);">
+      <p>Statut du compte : <span id="authStatus">Vérification en cours...</span></p>
+      <p class="muted">Prochaine étape : tableau de bord, photo de profil, puis penderie virtuelle.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
