@@ -4,6 +4,8 @@ const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
+const { v2: cloudinary } = require("cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const Garment = require("../models/Garment");
 const protect = require("../middleware/authMiddleware");
@@ -17,11 +19,18 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "clauzia_garments", // Un dossier sera créé automatiquement sur ton Cloudinary
+    allowed_formats: ["jpg", "png", "jpeg", "webp"], // Formats acceptés
+    transformation: [{ width: 800, height: 800, crop: "limit" }] // Optionnel : redimensionne les images trop grandes pour économiser du stockage
   },
 });
 
@@ -80,6 +89,8 @@ function parseBoolean(value) {
   return ["true", "1", "yes", "oui", "on"].includes(v);
 }
 
+
+
 function deleteLocalFileFromUrl(fileUrl) {
   if (!fileUrl) return;
   try {
@@ -130,7 +141,7 @@ router.post("/", protect, upload.single("garmentImage"), async (req, res) => {
       placement = inferPlacementFromCategory(category);
     }
 
-    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}` || req.file.path ;
 
     let processedImageUrl = "";
     try {
@@ -142,7 +153,7 @@ router.post("/", protect, upload.single("garmentImage"), async (req, res) => {
 
     const garment = await Garment.create({
       userId: req.user.id,
-      imageUrl,
+      imageUrl: imageUrl,
       processedImageUrl,
       placement,
       category: category || "",
@@ -249,31 +260,46 @@ router.patch("/:id/availability", protect, async (req, res) => {
   }
 });
 
+// Fonction pour récupérer le public_id depuis l'URL Cloudinary
+const extractPublicId = (url) => {
+  if (!url) return null;
+  const parts = url.split('/');
+  // Récupère les deux dernières parties (dossier/fichier.ext)
+  const fileWithFolder = parts.slice(-2).join('/'); 
+  // Enlève l'extension (.png, .jpg)
+  return fileWithFolder.split('.')[0]; 
+};
+
 router.delete("/:id", protect, async (req, res) => {
   try {
-    const garment = await Garment.findOne({
-      _id: req.params.id,
-      userId: req.user.id,
-    });
+    const garment = await Garment.findOne({ _id: req.params.id, userId: req.user.id });
 
     if (!garment) {
       return res.status(404).json({ message: "Vêtement introuvable." });
     }
 
-    deleteLocalFileFromUrl(garment.imageUrl);
-    deleteLocalFileFromUrl(garment.processedImageUrl);
+    // 1. Supprimer l'image originale de Cloudinary
+    const originalPublicId = extractPublicId(garment.imageUrl);
+    if (originalPublicId) {
+      await cloudinary.uploader.destroy(originalPublicId);
+    }
 
-    await Garment.deleteOne({ _id: garment._id });
+    // 2. Si tu utilises aussi une image traitée (sans fond par exemple), supprime-la aussi !
+    if (garment.processedImageUrl) {
+      const processedPublicId = extractPublicId(garment.processedImageUrl);
+      if (processedPublicId) {
+        await cloudinary.uploader.destroy(processedPublicId);
+      }
+    }
 
-    return res.json({
-      message: "Vêtement supprimé avec succès.",
-    });
+    // 3. Supprimer le document de la base de données MongoDB
+    await Garment.findByIdAndDelete(req.params.id);
+
+    return res.json({ message: "Vêtement et images associés supprimés avec succès." });
+
   } catch (error) {
-    console.error("Erreur suppression vêtement:", error);
-    return res.status(500).json({
-      message: "Erreur serveur.",
-      error: error.message,
-    });
+    console.error("Erreur lors de la suppression:", error);
+    return res.status(500).json({ message: "Erreur serveur.", error: error.message });
   }
 });
 
