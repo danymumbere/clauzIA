@@ -426,7 +426,7 @@ Contexte :
 
     return res.json({
       message: "Tenue générée avec succès.",
-      generatedImageUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/generated/${filename}`,
+      generatedImageUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/generated/${saved.filename}`,
       selected: {
         top,
         bottom,

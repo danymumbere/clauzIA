@@ -124,7 +124,7 @@ async function removeBackgroundWithPython(filePath) {
   return {
     processedFilename,
     processedPath,
-    processedUrl: `http://localhost:5000/uploads/${processedFilename}`,
+    processedUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/${processedFilename}`,
   };
 }
 
@@ -141,7 +141,7 @@ router.post("/", protect, upload.single("garmentImage"), async (req, res) => {
       placement = inferPlacementFromCategory(category);
     }
 
-    const imageUrl = `http://localhost:5000/uploads/${req.file.filename}` || req.file.path ;
+    const imageUrl = req.file.path;
 
     let processedImageUrl = "";
     try {
@@ -206,7 +206,7 @@ router.put("/:id", protect, upload.single("garmentImage"), async (req, res) => {
     }
 
     if (req.file) {
-      garment.imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+      garment.imageUrl = req.file.path ;
 
       try {
         const processed = await removeBackgroundWithPython(req.file.path);

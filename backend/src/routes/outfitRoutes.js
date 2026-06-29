@@ -83,7 +83,7 @@ router.post("/generate", protect, async (req, res) => {
 
     return res.json({
       message: "Tenue générée avec succès.",
-      generatedImageUrl: `http://localhost:5000/uploads/generated/${filename}`,
+      generatedImageUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/generated/${filename}`,
       selected: {
         top,
         bottom,
