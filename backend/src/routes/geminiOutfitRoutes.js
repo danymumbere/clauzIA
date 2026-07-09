@@ -26,6 +26,19 @@ if (!fs.existsSync(GENERATED_DIR)) {
   fs.mkdirSync(GENERATED_DIR, { recursive: true });
 }
 
+const uploadBufferToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: folder },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+};
+
 function mimeToExt(mimeType = "") {
   const m = mimeType.toLowerCase();
   if (m.includes("png")) return "png";
@@ -56,22 +69,15 @@ function urlToLocalFilePath(imageUrl) {
   return path.join(UPLOADS_DIR, filename);
 }
 
-function localImageToPart(imageUrl) {
-  const filePath = urlToLocalFilePath(imageUrl);
-
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Image introuvable sur disque : ${filePath}`);
-  }
-
-  const ext = path.extname(filePath).toLowerCase();
-  let mimeType = "image/jpeg";
-  if (ext === ".png") mimeType = "image/png";
-  if (ext === ".webp") mimeType = "image/webp";
-  if (ext === ".svg") mimeType = "image/svg+xml";
-
+async function urlToImagePart(imageUrl) {
+  if (!imageUrl) return null;
+  
+  const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
+  const mimeType = response.headers["content-type"] || "image/png";
+  
   return {
     mimeType,
-    data: fs.readFileSync(filePath).toString("base64"),
+    data: Buffer.from(response.data).toString("base64"),
   };
 }
 
@@ -282,20 +288,15 @@ router.post("/generate-image", protect, async (req, res) => {
       });
     }
 
-    const userImagePart = localImageToPart(user.profilePhotoUrl);
-    const topImagePart = localImageToPart(top.processedImageUrl || top.imageUrl);
-    const bottomImagePart = localImageToPart(bottom.processedImageUrl || bottom.imageUrl);
+    const userImagePart = await urlToImagePart(user.profilePhotoUrl);
+    const topImagePart = await urlToImagePart(top.processedImageUrl || top.imageUrl);
+    const bottomImagePart = await urlToImagePart(bottom.processedImageUrl || bottom.imageUrl);
 
     let shoesImagePart = null;
     let accessoryImagePart = null;
 
-    if (shoes) {
-      shoesImagePart = localImageToPart(shoes.processedImageUrl || shoes.imageUrl);
-    }
-
-    if (accessory) {
-      accessoryImagePart = localImageToPart(accessory.processedImageUrl || accessory.imageUrl);
-    }
+    if (shoes) shoesImagePart = await urlToImagePart(shoes.processedImageUrl || shoes.imageUrl);
+    if (accessory) accessoryImagePart = await urlToImagePart(accessory.processedImageUrl || accessory.imageUrl);
 
     const analysisPrompt = `
 Tu es un styliste professionnel.
@@ -422,20 +423,16 @@ Contexte :
       }
     }
 
-    const saved = await saveGeneratedImage(generatedBuffer, generatedMimeType);
+    // Uploader le look final directement sur Cloudinary
+    const finalCloudinaryUrl = await uploadBufferToCloudinary(generatedBuffer, "clauzia_looks");
 
     return res.json({
       message: "Tenue générée avec succès.",
-      generatedImageUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/generated/${saved.filename}`,
-      selected: {
-        top,
-        bottom,
-        shoes,
-        accessory,
-      },
+      generatedImageUrl: finalCloudinaryUrl, // C'est maintenant une URL Cloudinary stable !
+      selected: { top, bottom, shoes, accessory },
       styleBrief,
-      fallback: saved.mimeType === "image/svg+xml",
     });
+    
   } catch (error) {
     console.error("Erreur génération tenue Gemini:", error);
     return res.status(500).json({

@@ -34,6 +34,19 @@ const storage = new CloudinaryStorage({
   },
 });
 
+const uploadBufferToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: folder },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+};
+
 const upload = multer({ storage });
 
 function normalize(text) {
@@ -105,9 +118,14 @@ function deleteLocalFileFromUrl(fileUrl) {
   }
 }
 
-async function removeBackgroundWithPython(filePath) {
+async function removeBackgroundWithPython(cloudinaryUrl) {
+  // 1. Télécharger l'image depuis Cloudinary en mémoire (Buffer)
+  const imageRes = await axios.get(cloudinaryUrl, { responseType: "arraybuffer" });
+  const imageBuffer = Buffer.from(imageRes.data);
+
   const form = new FormData();
-  form.append("image", fs.createReadStream(filePath));
+  // On attache le buffer directement au formulaire destiné au service Python
+  form.append("image", imageBuffer, { filename: "image.png" });
 
   const response = await axios.post(`${AI_SERVICE_URL}/remove-background`, form, {
     headers: form.getHeaders(),
@@ -116,16 +134,13 @@ async function removeBackgroundWithPython(filePath) {
     maxContentLength: Infinity,
   });
 
-  const processedFilename = `processed-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
-  const processedPath = path.join(UPLOADS_DIR, processedFilename);
+  // 2. Envoyer le buffer retourné par l'IA directement sur Cloudinary
+  const processedUrl = await uploadBufferToCloudinary(
+    Buffer.from(response.data), 
+    "clauzia_garments_processed"
+  );
 
-  fs.writeFileSync(processedPath, Buffer.from(response.data));
-
-  return {
-    processedFilename,
-    processedPath,
-    processedUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/${processedFilename}`,
-  };
+  return { processedUrl };
 }
 
 router.post("/", protect, upload.single("garmentImage"), async (req, res) => {

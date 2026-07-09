@@ -1,8 +1,6 @@
 const express = require("express");
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-
+const { v2: cloudinary } = require("cloudinary"); // Ajout de Cloudinary
 const protect = require("../middleware/authMiddleware");
 const User = require("../models/User");
 const Garment = require("../models/Garment");
@@ -10,11 +8,20 @@ const Garment = require("../models/Garment");
 const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
-const GENERATED_DIR = path.join(__dirname, "../../uploads/generated");
 
-if (!fs.existsSync(GENERATED_DIR)) {
-  fs.mkdirSync(GENERATED_DIR, { recursive: true });
-}
+// Ajout de la fonction d'upload Cloudinary (identique aux autres fichiers)
+const uploadBufferToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: folder },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+};
 
 function pickById(garments, id) {
   if (!id) return null;
@@ -70,20 +77,21 @@ router.post("/generate", protect, async (req, res) => {
     };
 
     const pythonResponse = await axios.post(`${AI_SERVICE_URL}/generate-outfit-intelligent`, payload, {
-      responseType: "arraybuffer",
+      responseType: "arraybuffer", // On récupère bien un buffer
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
       headers: { "Content-Type": "application/json" },
     });
 
-    const filename = `outfit-${Date.now()}-${Math.round(Math.random() * 1e9)}.png`;
-    const filePath = path.join(GENERATED_DIR, filename);
-
-    fs.writeFileSync(filePath, Buffer.from(pythonResponse.data));
+    // CORRECTION ICI : On envoie le Buffer directement sur Cloudinary au lieu de fs.writeFileSync
+    const finalCloudinaryUrl = await uploadBufferToCloudinary(
+      Buffer.from(pythonResponse.data), 
+      "clauzia_looks"
+    );
 
     return res.json({
       message: "Tenue générée avec succès.",
-      generatedImageUrl: `${process.env.BACKEND_URL || 'http://localhost:5000'}/uploads/generated/${filename}`,
+      generatedImageUrl: finalCloudinaryUrl, // URL Cloudinary stable !
       selected: {
         top,
         bottom,
