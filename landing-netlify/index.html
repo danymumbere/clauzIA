@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClauzIA - Ton styliste virtuel intelligent</title>
+
+  <!-- ========================================== -->
+  <!-- BALISES OPEN GRAPH (Pour les réseaux sociaux)-->
+  <!-- ========================================== -->
+  <meta property="og:title" content="ClauzIA - Ton dressing intelligent & essayage virtuel" />
+  <meta property="og:description" content="Organise tes vêtements, reçois des recommandations sur mesure et génère des essayages virtuels ultra-réalistes grâce à l'IA." />
+  <!-- Remplace cette URL par ton domaine Netlify final une fois déployé -->
+  <meta property="og:image" content="https://clauzia-outfit.netlify.app/Gemini_Generated_Image_uicmbsuicmbsuicm.png" />
+  <meta property="og:url" content="https://clauzia-outfit.netlify.app" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- ========================================== -->
+  <!-- STYLES CSS INSPIRÉS DE TON TABLEAU DE BORD -->
+  <!-- ========================================== -->
+  <style>
+    :root {
+      --bg-color: #f8f5f2; /* Beige clair inspiré de ton interface */
+      --text-main: #1a1a1a;
+      --text-muted: #666666;
+      --accent-color: #e87b1e; /* Orange tiré de ton logo */
+      --accent-hover: #d16b17;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      border-radius-main: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Navigation */
+    header {
+      padding: 24px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-container img {
+      height: 40px;
+      width: auto;
+    }
+
+    /* Hero Section */
+    .hero {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 40px 5%;
+      max-width: 1200px;
+      margin: 0 auto;
+      gap: 40px;
+    }
+
+    .hero-content {
+      flex: 1;
+      max-width: 600px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(232, 123, 30, 0.1);
+      color: var(--accent-color);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      line-height: 1.1;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    /* Bouton d'appel à l'action (Redirige vers Render) */
+    .cta-button {
+      display: inline-block;
+      background-color: var(--accent-color);
+      color: white;
+      text-decoration: none;
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 15px rgba(232, 123, 30, 0.3);
+    }
+
+    .cta-button:hover {
+      background-color: var(--accent-hover);
+      transform: translateY(-2px);
+    }
+
+    /* Section Visuelle */
+    .hero-visual {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+      text-align: center;
+    }
+
+    .glass-card img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 16px;
+      object-fit: cover;
+    }
+
+    .glass-card h3 {
+      margin-top: 16px;
+      font-size: 1.1rem;
+      color: var(--text-main);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      .hero-content {
+        margin-bottom: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- En-tête avec ton logo -->
+  <header>
+    <div class="logo-container">
+      <!-- Assure-toi que "icon(1).png" est dans le même dossier sur Netlify -->
+      <img src="icon(1).png" alt="Logo ClauzIA" />
+      ClauzIA
+    </div>
+  </header>
+
+  <!-- Section Principale -->
+  <main class="hero">
+    <div class="hero-content">
+      <span class="hero-badge">Nouveau : Essayage Virtuel ✨</span>
+      <h1>Ton dressing,<br>réinventé.</h1>
+      <p>
+        Numérise ta garde-robe, reçois des recommandations basées sur la météo et ton humeur, et visualise tes tenues directement sur toi grâce à notre IA d'essayage virtuel.
+      </p>
+      
+      <!-- LE LIEN ABSOLU VERS TON BACKEND RENDER -->
+      <a href="https://clauzia-backend.onrender.com/index.html" class="cta-button">
+        Commencer maintenant
+      </a>
+    </div>
+
+    <!-- Illustration visuelle inspirée de ta maquette -->
+    <div class="hero-visual">
+      <div class="glass-card">
+        <!-- Assure-toi que cette image est dans ton dossier Netlify -->
+        <img src="Gemini_Generated_Image_uicmbsuicmbsuicm.png" alt="Exemple d'essayage virtuel IA ClauzIA" />
+        <h3>Résultat d'essayage généré par IA</h3>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
