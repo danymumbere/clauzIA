@@ -6,6 +6,13 @@ const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+// CORRECTION : Initialisation indispensable de Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 // 1. On remplace CloudinaryStorage par un stockage en mémoire RAM
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -60,7 +67,6 @@ router.post("/profile-photo", protect, upload.single("profilePhoto"), async (req
       user,
     });
   } catch (error) {
-    // 6. Si Cloudinary ou autre chose plante, on le voit enfin dans les logs clairement !
     console.error("Erreur lors de l'upload de la photo :", error);
     res.status(500).json({ message: "Erreur serveur.", error: error.message || "Erreur inconnue" });
   }
