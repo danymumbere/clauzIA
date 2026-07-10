@@ -34,6 +34,12 @@ router.post("/profile-photo", protect, upload.single("profilePhoto"), async (req
       return res.status(400).json({ message: "Aucun fichier envoyé." });
     }
 
+    console.log("=== DEBUG CLOUDINARY ===");
+    console.log("Cloud Name présent ?", !!process.env.CLOUDINARY_CLOUD_NAME);
+    console.log("API Key présente ?", !!process.env.CLOUDINARY_API_KEY);
+    console.log("API Secret présent ?", !!process.env.CLOUDINARY_API_SECRET);
+    console.log("URL Cloudinary (si existante) :", !!process.env.CLOUDINARY_URL);
+
     // 3. Fonction pour envoyer manuellement le buffer à Cloudinary
     const uploadToCloudinary = (buffer) => {
       return new Promise((resolve, reject) => {
