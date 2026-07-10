@@ -1,6 +1,7 @@
 const express = require("express");
-const fs = require("fs");
 const path = require("path");
+const axios = require("axios"); // CORRIGÉ : Importation manquante
+const { v2: cloudinary } = require("cloudinary"); // CORRIGÉ : Importation manquante
 const protect = require("../middleware/authMiddleware");
 const User = require("../models/User");
 const Garment = require("../models/Garment");
@@ -15,17 +16,18 @@ try {
 
 const router = express.Router();
 
+// CORRIGÉ : Configuration de Cloudinary indispensable pour l'upload
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 
-const GENERATED_DIR = path.join(__dirname, "../../uploads/generated");
-const UPLOADS_DIR = path.join(__dirname, "../../uploads");
-
-if (!fs.existsSync(GENERATED_DIR)) {
-  fs.mkdirSync(GENERATED_DIR, { recursive: true });
-}
-
+// Fonction pour envoyer un look généré (Buffer) directement sur Cloudinary
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -39,15 +41,6 @@ const uploadBufferToCloudinary = (buffer, folder) => {
   });
 };
 
-function mimeToExt(mimeType = "") {
-  const m = mimeType.toLowerCase();
-  if (m.includes("png")) return "png";
-  if (m.includes("jpeg") || m.includes("jpg")) return "jpg";
-  if (m.includes("webp")) return "webp";
-  if (m.includes("svg")) return "svg";
-  return "png";
-}
-
 function escapeXml(value) {
   return (value || "")
     .toString()
@@ -58,17 +51,7 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function urlToLocalFilePath(imageUrl) {
-  const parsed = new URL(imageUrl);
-  const filename = path.basename(decodeURIComponent(parsed.pathname));
-
-  if (parsed.pathname.includes("/generated/")) {
-    return path.join(GENERATED_DIR, filename);
-  }
-
-  return path.join(UPLOADS_DIR, filename);
-}
-
+// Télécharge une image depuis Cloudinary pour la convertir au format attendu par Gemini
 async function urlToImagePart(imageUrl) {
   if (!imageUrl) return null;
   
@@ -102,7 +85,6 @@ function extractInlineImageFromContentResponse(response) {
       }
     }
   }
-
   return null;
 }
 
@@ -178,7 +160,6 @@ function sleep(ms) {
 function isRetryableGeminiError(err) {
   const status = err?.status || err?.response?.status;
   const message = String(err?.message || "");
-
   return status === 503 || message.includes("UNAVAILABLE") || message.includes("high demand");
 }
 
@@ -203,44 +184,6 @@ async function generateWithRetry(fn, { maxRetries = 3, initialDelayMs = 2000 } =
       delay *= 2;
     }
   }
-}
-
-async function toPngIfPossible(buffer, mimeType) {
-  const lower = (mimeType || "").toLowerCase();
-
-  if (sharp) {
-    try {
-      const pngBuffer = await sharp(buffer).png().toBuffer();
-      return {
-        buffer: pngBuffer,
-        mimeType: "image/png",
-        ext: "png",
-      };
-    } catch (err) {
-      console.warn("Conversion PNG impossible, on garde le format original :", err.message);
-    }
-  }
-
-  return {
-    buffer,
-    mimeType: lower || "application/octet-stream",
-    ext: mimeToExt(lower),
-  };
-}
-
-async function saveGeneratedImage(buffer, mimeType) {
-  const safe = await toPngIfPossible(buffer, mimeType);
-
-  const filename = `look-${Date.now()}-${Math.round(Math.random() * 1e9)}.${safe.ext}`;
-  const filePath = path.join(GENERATED_DIR, filename);
-
-  fs.writeFileSync(filePath, safe.buffer);
-
-  return {
-    filename,
-    filePath,
-    mimeType: safe.mimeType,
-  };
 }
 
 router.post("/generate-image", protect, async (req, res) => {
@@ -385,15 +328,8 @@ Contexte :
       const status = geminiImageError?.status || geminiImageError?.response?.status;
       const message = String(geminiImageError?.message || "");
 
-      const isQuota =
-        status === 429 ||
-        message.includes("quota") ||
-        message.includes("RESOURCE_EXHAUSTED");
-
-      const isUnavailable =
-        status === 503 ||
-        message.includes("UNAVAILABLE") ||
-        message.includes("high demand");
+      const isQuota = status === 429 || message.includes("quota") || message.includes("RESOURCE_EXHAUSTED");
+      const isUnavailable = status === 503 || message.includes("UNAVAILABLE") || message.includes("high demand");
 
       if (!(isQuota || isUnavailable)) {
         throw geminiImageError;
@@ -423,12 +359,12 @@ Contexte :
       }
     }
 
-    // Uploader le look final directement sur Cloudinary
+    // Uploader le look final directement sur Cloudinary sans passer par le disque local
     const finalCloudinaryUrl = await uploadBufferToCloudinary(generatedBuffer, "clauzia_looks");
 
     return res.json({
       message: "Tenue générée avec succès.",
-      generatedImageUrl: finalCloudinaryUrl, // C'est maintenant une URL Cloudinary stable !
+      generatedImageUrl: finalCloudinaryUrl,
       selected: { top, bottom, shoes, accessory },
       styleBrief,
     });

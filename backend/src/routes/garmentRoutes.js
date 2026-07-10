@@ -1,23 +1,15 @@
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
 const { v2: cloudinary } = require("cloudinary");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const Garment = require("../models/Garment");
 const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-const UPLOADS_DIR = path.join(__dirname, "../../uploads");
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
-
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -25,19 +17,19 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "clauzia_garments", // Un dossier sera créé automatiquement sur ton Cloudinary
-    allowed_formats: ["jpg", "png", "jpeg", "webp"], // Formats acceptés
-    transformation: [{ width: 800, height: 800, crop: "limit" }] // Optionnel : redimensionne les images trop grandes pour économiser du stockage
-  },
-});
+// 1. On utilise le stockage en mémoire (RAM) pour éviter les crashs
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
+// 2. Fonction pour envoyer un Buffer à Cloudinary (avec les options de redimensionnement)
 const uploadBufferToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: folder },
+      { 
+        folder: folder,
+        allowed_formats: ["jpg", "png", "jpeg", "webp"],
+        transformation: [{ width: 800, height: 800, crop: "limit" }]
+      },
       (error, result) => {
         if (error) return reject(error);
         resolve(result.secure_url);
@@ -47,52 +39,20 @@ const uploadBufferToCloudinary = (buffer, folder) => {
   });
 };
 
-const upload = multer({ storage });
-
 function normalize(text) {
   return (text || "").toString().toLowerCase().trim();
 }
 
 function inferPlacementFromCategory(category) {
   const c = normalize(category);
-
-  if (
-    c.includes("t-shirt") ||
-    c.includes("chemise") ||
-    c.includes("pull") ||
-    c.includes("sweat") ||
-    c.includes("veste") ||
-    c.includes("manteau")
-  ) {
-    return "top";
-  }
-
-  if (
-    c.includes("jean") ||
-    c.includes("pantalon") ||
-    c.includes("jupe") ||
-    c.includes("robe") ||
-    c.includes("short")
-  ) {
-    return "bottom";
-  }
-
-  if (
-    c.includes("chauss") ||
-    c.includes("sneaker") ||
-    c.includes("bott") ||
-    c.includes("sandale")
-  ) {
-    return "shoes";
-  }
-
+  if (c.includes("t-shirt") || c.includes("chemise") || c.includes("pull") || c.includes("sweat") || c.includes("veste") || c.includes("manteau")) return "top";
+  if (c.includes("jean") || c.includes("pantalon") || c.includes("jupe") || c.includes("robe") || c.includes("short")) return "bottom";
+  if (c.includes("chauss") || c.includes("sneaker") || c.includes("bott") || c.includes("sandale")) return "shoes";
   return "accessory";
 }
 
 function parseTags(value) {
-  return value
-    ? value.split(",").map((tag) => tag.trim()).filter(Boolean)
-    : [];
+  return value ? value.split(",").map((tag) => tag.trim()).filter(Boolean) : [];
 }
 
 function parseBoolean(value) {
@@ -102,29 +62,9 @@ function parseBoolean(value) {
   return ["true", "1", "yes", "oui", "on"].includes(v);
 }
 
-
-
-function deleteLocalFileFromUrl(fileUrl) {
-  if (!fileUrl) return;
-  try {
-    const parsed = new URL(fileUrl);
-    const filename = path.basename(decodeURIComponent(parsed.pathname));
-    const localPath = path.join(UPLOADS_DIR, filename);
-    if (fs.existsSync(localPath)) {
-      fs.unlinkSync(localPath);
-    }
-  } catch {
-    // on ignore si l'URL n'est pas exploitable
-  }
-}
-
-async function removeBackgroundWithPython(cloudinaryUrl) {
-  // 1. Télécharger l'image depuis Cloudinary en mémoire (Buffer)
-  const imageRes = await axios.get(cloudinaryUrl, { responseType: "arraybuffer" });
-  const imageBuffer = Buffer.from(imageRes.data);
-
+// 3. La fonction Python prend maintenant directement le Buffer (la RAM)
+async function removeBackgroundWithPython(imageBuffer) {
   const form = new FormData();
-  // On attache le buffer directement au formulaire destiné au service Python
   form.append("image", imageBuffer, { filename: "image.png" });
 
   const response = await axios.post(`${AI_SERVICE_URL}/remove-background`, form, {
@@ -134,7 +74,6 @@ async function removeBackgroundWithPython(cloudinaryUrl) {
     maxContentLength: Infinity,
   });
 
-  // 2. Envoyer le buffer retourné par l'IA directement sur Cloudinary
   const processedUrl = await uploadBufferToCloudinary(
     Buffer.from(response.data), 
     "clauzia_garments_processed"
@@ -156,11 +95,13 @@ router.post("/", protect, upload.single("garmentImage"), async (req, res) => {
       placement = inferPlacementFromCategory(category);
     }
 
-    const imageUrl = req.file.path;
+    // 4. On upload l'image originale sur Cloudinary manuellement
+    const imageUrl = await uploadBufferToCloudinary(req.file.buffer, "clauzia_garments");
 
     let processedImageUrl = "";
     try {
-      const processed = await removeBackgroundWithPython(req.file.path);
+      // 5. On passe le Buffer directement à l'IA, plus besoin de le retélécharger !
+      const processed = await removeBackgroundWithPython(req.file.buffer);
       processedImageUrl = processed.processedUrl;
     } catch (pythonError) {
       console.error("Erreur service Python:", pythonError.message);
@@ -221,10 +162,11 @@ router.put("/:id", protect, upload.single("garmentImage"), async (req, res) => {
     }
 
     if (req.file) {
-      garment.imageUrl = req.file.path ;
+      // Même logique pour la modification
+      garment.imageUrl = await uploadBufferToCloudinary(req.file.buffer, "clauzia_garments");
 
       try {
-        const processed = await removeBackgroundWithPython(req.file.path);
+        const processed = await removeBackgroundWithPython(req.file.buffer);
         garment.processedImageUrl = processed.processedUrl;
       } catch (pythonError) {
         console.error("Erreur service Python (update):", pythonError.message);
@@ -275,13 +217,10 @@ router.patch("/:id/availability", protect, async (req, res) => {
   }
 });
 
-// Fonction pour récupérer le public_id depuis l'URL Cloudinary
 const extractPublicId = (url) => {
   if (!url) return null;
   const parts = url.split('/');
-  // Récupère les deux dernières parties (dossier/fichier.ext)
   const fileWithFolder = parts.slice(-2).join('/'); 
-  // Enlève l'extension (.png, .jpg)
   return fileWithFolder.split('.')[0]; 
 };
 
@@ -293,13 +232,11 @@ router.delete("/:id", protect, async (req, res) => {
       return res.status(404).json({ message: "Vêtement introuvable." });
     }
 
-    // 1. Supprimer l'image originale de Cloudinary
     const originalPublicId = extractPublicId(garment.imageUrl);
     if (originalPublicId) {
       await cloudinary.uploader.destroy(originalPublicId);
     }
 
-    // 2. Si tu utilises aussi une image traitée (sans fond par exemple), supprime-la aussi !
     if (garment.processedImageUrl) {
       const processedPublicId = extractPublicId(garment.processedImageUrl);
       if (processedPublicId) {
@@ -307,7 +244,6 @@ router.delete("/:id", protect, async (req, res) => {
       }
     }
 
-    // 3. Supprimer le document de la base de données MongoDB
     await Garment.findByIdAndDelete(req.params.id);
 
     return res.json({ message: "Vêtement et images associés supprimés avec succès." });
