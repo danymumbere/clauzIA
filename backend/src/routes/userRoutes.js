@@ -6,13 +6,6 @@ const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// CORRECTION : Initialisation indispensable de Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 // 1. On remplace CloudinaryStorage par un stockage en mémoire RAM
 const storage = multer.memoryStorage();
 const upload = multer({ storage });

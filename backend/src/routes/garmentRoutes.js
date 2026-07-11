@@ -11,12 +11,6 @@ const router = express.Router();
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://127.0.0.1:8000";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 // 1. On utilise le stockage en mémoire (RAM) pour éviter les crashs
 const storage = multer.memoryStorage();
 const upload = multer({ storage });

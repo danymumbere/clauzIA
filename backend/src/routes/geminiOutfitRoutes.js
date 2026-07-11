@@ -16,13 +16,6 @@ try {
 
 const router = express.Router();
 
-// CORRIGÉ : Configuration de Cloudinary indispensable pour l'upload
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
