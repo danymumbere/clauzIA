@@ -8,9 +8,9 @@ const router = express.Router();
 
 // CORRECTION : Initialisation indispensable de Cloudinary
 cloudinary.config({
-  cloud_name: "dot3cvpfb",
-  api_key: "852861382657317",
-  api_secret: "K_5ZJgh2gqN9fmRMDb5U7zft240",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // 1. On remplace CloudinaryStorage par un stockage en mémoire RAM
