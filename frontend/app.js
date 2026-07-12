@@ -813,6 +813,20 @@ const API_BASE = window.location.origin;
           formData.append("moodTags", document.getElementById("moodTags").value.trim());
           formData.append("occasionTags", document.getElementById("occasionTags").value.trim());
 
+          // --- AJOUT POUR L'UX (Début) ---
+          const submitBtn = document.getElementById("garmentSubmitBtn");
+          const originalBtnText = submitBtn.textContent; // On sauvegarde le texte original
+          
+          // On désactive le bouton et on change le texte
+          submitBtn.disabled = true;
+          submitBtn.textContent = "⏳ Traitement par l'IA en cours...";
+          submitBtn.style.opacity = "0.7";
+          submitBtn.style.cursor = "wait";
+
+          // On affiche un message d'information
+          showMessage("garmentMessage", "Détourage du vêtement et sauvegarde en cours. Merci de patienter...", "info");
+          // --- AJOUT POUR L'UX (Fin) ---
+
           try {
             const url = isEditing
               ? `${API_BASE}/api/garments/${currentEditingGarmentId}`
@@ -848,6 +862,14 @@ const API_BASE = window.location.origin;
             loadGarments();
           } catch {
             showMessage("garmentMessage", "Impossible de joindre le serveur.", "error");
+          } finally {
+            // --- AJOUT POUR L'UX (Restauration) ---
+            // Qu'il y ait une erreur ou un succès, on restaure le bouton
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            submitBtn.style.opacity = "1";
+            submitBtn.style.cursor = "pointer";
+            // --- AJOUT POUR L'UX (Fin) ---
           }
         });
       }
