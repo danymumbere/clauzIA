@@ -245,24 +245,29 @@ Contexte :
 - Saison : ${season}
 `;
 
-    const analysisResponse = await ai.models.generateContent({
-      model: process.env.GEMINI_ANALYSIS_MODEL || "models/gemini-2.5-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: analysisPrompt },
-            { inlineData: userImagePart },
-            { inlineData: topImagePart },
-            { inlineData: bottomImagePart },
-            ...(shoesImagePart ? [{ inlineData: shoesImagePart }] : []),
-            ...(accessoryImagePart ? [{ inlineData: accessoryImagePart }] : []),
-          ],
-        },
-      ],
-    });
-
-    const styleBrief = (analysisResponse.text || "").trim();
+    // 1. Analyse du style avec Gemini (Texte)
+    let styleBrief = "Look moderne, harmonieux et photoréaliste.";
+    try {
+      const analysisResponse = await ai.models.generateContent({
+        model: process.env.GEMINI_ANALYSIS_MODEL || "models/gemini-2.5-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: analysisPrompt },
+              { inlineData: userImagePart },
+              { inlineData: topImagePart },
+              { inlineData: bottomImagePart },
+              ...(shoesImagePart ? [{ inlineData: shoesImagePart }] : []),
+              ...(accessoryImagePart ? [{ inlineData: accessoryImagePart }] : []),
+            ],
+          },
+        ],
+      });
+      styleBrief = (analysisResponse.text || "").trim();
+    } catch (analysisError) {
+      console.warn("Erreur lors de l'analyse du style par Gemini. Utilisation du style par défaut.");
+    }
 
     const finalPrompt = `
 Créer une image photoréaliste d'essayage virtuel.
@@ -276,7 +281,7 @@ Règles :
 - Rendu réaliste, propre, naturel.
 
 Style à respecter :
-${styleBrief || "Look moderne, harmonieux et photoréaliste."}
+${styleBrief}
 
 Contexte :
 - Humeur : ${mood}
@@ -287,6 +292,9 @@ Contexte :
     let generatedBuffer = null;
     let generatedMimeType = "image/png";
 
+    // ==========================================
+    // PLAN A : Génération d'image avec Gemini
+    // ==========================================
     try {
       const imageResponse = await generateWithRetry(
         () =>
@@ -314,24 +322,43 @@ Contexte :
       if (generated?.buffer) {
         generatedBuffer = generated.buffer;
         generatedMimeType = generated.mimeType || "image/png";
+        console.log("✅ Image générée avec succès via Gemini !");
       } else {
-        console.warn("Gemini n'a pas renvoyé d'image exploitable. Passage au fallback.");
+        console.warn("Gemini n'a pas renvoyé d'image exploitable.");
       }
     } catch (geminiImageError) {
-      const status = geminiImageError?.status || geminiImageError?.response?.status;
-      const message = String(geminiImageError?.message || "");
-
-      const isQuota = status === 429 || message.includes("quota") || message.includes("RESOURCE_EXHAUSTED");
-      const isUnavailable = status === 503 || message.includes("UNAVAILABLE") || message.includes("high demand");
-
-      if (!(isQuota || isUnavailable)) {
-        throw geminiImageError;
-      }
-
-      console.warn("Gemini image indisponible, utilisation du fallback SVG.");
+      console.warn("⚠️ Gemini image indisponible ou quota atteint.");
     }
 
+    // ==========================================
+    // PLAN B : Fallback 1 - Pollinations AI
+    // ==========================================
     if (!generatedBuffer) {
+      console.log("Tentative de génération via Pollinations AI (Plan B)...");
+      try {
+        // Construction d'un prompt textuel détaillé pour Pollinations
+        const pollinationsPrompt = `A high quality photorealistic fashion portrait of a person wearing a stylish outfit. Context: ${mood} mood, for a ${occasion} in ${season}. Style details: ${styleBrief}. Clean background, professional photography, 8k resolution, highly detailed.`;
+        
+        const encodedPrompt = encodeURIComponent(pollinationsPrompt); 
+        // Dimensions 768x1024 (idéal pour des portraits de mode/vêtements)
+        const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=768&height=1024&nologo=true&seed=${Math.floor(Math.random() * 10000)}`;
+        
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        
+        generatedBuffer = Buffer.from(response.data);
+        generatedMimeType = "image/jpeg"; // Pollinations renvoie généralement du JPEG
+        console.log("✅ Image générée avec succès via Pollinations AI !");
+        
+      } catch (pollinationsError) {
+        console.warn(`⚠️ Pollinations AI indisponible (${pollinationsError.message}).`);
+      }
+    }
+
+    // ==========================================
+    // PLAN C : Fallback 2 - Génération SVG/PNG
+    // ==========================================
+    if (!generatedBuffer) {
+      console.log("Passage au fallback de secours ultime (Plan C - SVG)...");
       const fallbackSvg = buildFallbackSvg({
         userPart: userImagePart,
         topPart: topImagePart,
@@ -363,7 +390,7 @@ Contexte :
     });
     
   } catch (error) {
-    console.error("Erreur génération tenue Gemini:", error);
+    console.error("Erreur génération tenue:", error);
     return res.status(500).json({
       message: "Erreur serveur lors de la génération.",
       error: error.message,
