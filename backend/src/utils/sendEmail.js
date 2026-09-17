@@ -1,25 +1,27 @@
-// utils/sendEmail.js
 const nodemailer = require("nodemailer");
 
 const sendEmail = async (options) => {
-  // 1. Configurer le transporteur (Ici avec Gmail pour l'exemple)
   const transporter = nodemailer.createTransport({
-    service: "Gmail",
+    host: process.env.SMTP_HOST, // ex: 'smtp.gmail.com'
+    port: 465,                   // Utilisez 465 (ou 587)
+    secure: true,                // true pour 465, false pour 587
     auth: {
-      user: process.env.EMAIL_USER, // Ton adresse email
-      pass: process.env.EMAIL_PASS, // Ton mot de passe d'application
+      user: process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASSWORD,
     },
+    // Ajout utile pour éviter certains rejets de connexion
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 
-  // 2. Définir les options de l'email
   const mailOptions = {
-    from: `"ClauzIA Support" <${process.env.EMAIL_USER}>`,
+    from: `"ClauzIA" <${process.env.SMTP_EMAIL}>`,
     to: options.email,
     subject: options.subject,
     html: options.message,
   };
 
-  // 3. Envoyer l'email
   await transporter.sendMail(mailOptions);
 };
 
