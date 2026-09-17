@@ -2,12 +2,12 @@ const nodemailer = require("nodemailer");
 
 const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST, // ex: 'smtp.gmail.com'
+    host: "smtp.gmail.com",
     port: 465,                   // Utilisez 465 (ou 587)
     secure: true,                // true pour 465, false pour 587
     auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD,
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
     // Ajout utile pour éviter certains rejets de connexion
     tls: {
@@ -16,7 +16,7 @@ const sendEmail = async (options) => {
   });
 
   const mailOptions = {
-    from: `"ClauzIA" <${process.env.SMTP_EMAIL}>`,
+    from: `"ClauzIA" <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
     html: options.message,
