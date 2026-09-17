@@ -1,19 +1,20 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns");
+
+// Force globalement Node.js à privilégier l'IPv4 lors de la résolution DNS
+dns.setDefaultResultOrder('ipv4first');
 
 const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com", 
-    port: 465,
-    secure: true,
+    // Utiliser le raccourci "service" est généralement plus stable pour Gmail
+    service: "gmail", 
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
     tls: {
       rejectUnauthorized: false
-    },
-    // NOUVEAU : Force l'utilisation d'une adresse IPv4
-    family: 4 
+    }
   });
 
   const mailOptions = {
